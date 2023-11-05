@@ -1,57 +1,57 @@
-﻿Console.Clear();
-Console.CursorVisible = false;
+﻿using System.Diagnostics;
 
-var christmasTree = new ChristmasTree(25);
+PrepareForChristmas();
 
-while (true)
+var cancellationTokenSource = new CancellationTokenSource();
+
+var christmasTree = CreateChristmasTree(cancellationTokenSource.Token);
+await christmasTree.TurnOn();
+
+Console.CancelKeyPress += (obj, args) =>
 {
-    christmasTree.Blink();
-    christmasTree.Draw();
+    args.Cancel = true;
+    ChristmasIsOver();
+};
 
-    await Task.Delay(150);
+void PrepareForChristmas()
+{
+    Console.Clear();
+    Console.CursorVisible = false;
 }
 
-public class ChristmasTree
+string RunCommandWithBash(string command)
 {
-    private readonly ConsoleColor[] availableColors = 
+    var psi = new ProcessStartInfo
     {
-        ConsoleColor.Red,
-        ConsoleColor.Green,
-        ConsoleColor.Yellow
+        FileName = "/bin/bash",
+        Arguments = command,
+        RedirectStandardOutput = true,
+        UseShellExecute = false,
+        CreateNoWindow = true
     };
 
-    private readonly Random random = new();
-    private readonly ConsoleColor[,] colors;
+    using var process = Process.Start(psi);
 
-    public ChristmasTree(int height)
-    {
-        colors = new ConsoleColor[height, 2 * height - 1];
-    }
+    process.WaitForExit();
 
-    public void Draw()
-    {
-        for (var row = 0; row < colors.GetLength(0); ++row)
-        {
-            for (var column = 0; column < 2 * row + 1; ++column)
-            {
-                Console.SetCursorPosition(colors.GetLength(0) - row - 1 + column, row);
-                Console.ForegroundColor = colors[row, column];
-                Console.Write("*");           
-            }
-        }
-    }
+    var output = process.StandardOutput.ReadToEnd();
 
-    public void Blink()
-    {
-        for (var row = 0; row < colors.GetLength(0); ++row)
-        {
-            for (var column = 0; column < 2 * row + 1; ++column)
-            {
-                colors[row, column] = GenerateRandomColor();
-            }
-        }       
-    }
+    return output;
+}
 
-    private ConsoleColor GenerateRandomColor() => 
-        availableColors[random.Next() % availableColors.Length];
+ChristmasTree CreateChristmasTree(CancellationToken cancellationToken)
+{
+    var commandLineArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
+    var height = SafeParse(commandLineArgs.FirstOrDefault(), 25);
+
+    return new ChristmasTree(height, cancellationToken);
+}
+
+int SafeParse(string? str, int @default) => 
+    int.TryParse(str, out var result) ? result : @default;
+
+void ChristmasIsOver()
+{
+    Console.WriteLine();
+    Console.CursorVisible = true;
 }
