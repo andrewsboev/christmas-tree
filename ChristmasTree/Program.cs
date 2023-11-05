@@ -19,26 +19,6 @@ void PrepareForChristmas()
     Console.CursorVisible = false;
 }
 
-string RunCommandWithBash(string command)
-{
-    var psi = new ProcessStartInfo
-    {
-        FileName = "/bin/bash",
-        Arguments = command,
-        RedirectStandardOutput = true,
-        UseShellExecute = false,
-        CreateNoWindow = true
-    };
-
-    using var process = Process.Start(psi);
-
-    process.WaitForExit();
-
-    var output = process.StandardOutput.ReadToEnd();
-
-    return output;
-}
-
 ChristmasTree CreateChristmasTree(CancellationToken cancellationToken)
 {
     var commandLineArgs = Environment.GetCommandLineArgs().Skip(1).ToArray();
