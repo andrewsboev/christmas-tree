@@ -1,17 +1,19 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 PrepareForChristmas();
 
-var cancellationTokenSource = new CancellationTokenSource();
+using var cancellationTokenSource = new CancellationTokenSource();
 
-var christmasTree = CreateChristmasTree(cancellationTokenSource.Token);
-await christmasTree.TurnOn();
-
+// Properly wire up cancellation
 Console.CancelKeyPress += (obj, args) =>
 {
     args.Cancel = true;
+    cancellationTokenSource.Cancel(); // Actually trigger cancellation
     ChristmasIsOver();
 };
+
+var christmasTree = CreateChristmasTree(cancellationTokenSource.Token);
+await christmasTree.TurnOn();
 
 void PrepareForChristmas()
 {
@@ -27,8 +29,20 @@ ChristmasTree CreateChristmasTree(CancellationToken cancellationToken)
     return new ChristmasTree(height, cancellationToken);
 }
 
-int SafeParse(string? str, int @default) => 
-    int.TryParse(str, out var result) ? result : @default;
+int SafeParse(string? str, int @default)
+{
+    if (string.IsNullOrWhiteSpace(str))
+        return @default;
+    
+    if (!int.TryParse(str, out var result))
+        return @default;
+    
+    // Add bounds checking for security
+    if (result <= 0 || result > 50)
+        return @default;
+    
+    return result;
+}
 
 void ChristmasIsOver()
 {

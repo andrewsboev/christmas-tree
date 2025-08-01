@@ -10,34 +10,55 @@ public class ChristmasTree
     private readonly Random random = new();
     private readonly ConsoleColor[,] colors;
     private readonly CancellationToken cancellationToken;
+    private readonly int height;
 
     public async Task TurnOn()
     {
-        while (true)
+        try
         {
-            if (cancellationToken.IsCancellationRequested)
-                break;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Blink();
+                Draw();
 
-            Blink();
-            Draw();
-
-            await Task.Delay(150, cancellationToken);
+                await Task.Delay(150, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Gracefully handle cancellation
         }
     }
 
     public ChristmasTree(int height, CancellationToken cancellationToken)
     {
+        // Validate input
+        if (height <= 0)
+            throw new ArgumentException("Height must be positive", nameof(height));
+        if (height > 50)
+            throw new ArgumentException("Height too large (max 50)", nameof(height));
+
+        this.height = height;
+        // Fix: Correct array dimensions - each row needs (2 * row + 1) columns, max is (2 * height - 1)
         colors = new ConsoleColor[height, 2 * height - 1];
         this.cancellationToken = cancellationToken;
     }
 
     public void Draw()
     {
-        for (var row = 0; row < colors.GetLength(0); ++row)
+        Console.SetCursorPosition(0, 0);
+        
+        for (var row = 0; row < height; ++row)
         {
-            for (var column = 0; column < 2 * row + 1; ++column)
+            // Calculate proper centering offset
+            var starsInRow = 2 * row + 1;
+            var leftPadding = height - row - 1;
+            
+            // Move to the correct position for this row
+            Console.SetCursorPosition(leftPadding, row);
+            
+            for (var column = 0; column < starsInRow; ++column)
             {
-                Console.SetCursorPosition(colors.GetLength(0) - row - 1 + column, row);
                 Console.ForegroundColor = colors[row, column];
                 Console.Write("*");
             }
@@ -46,9 +67,10 @@ public class ChristmasTree
 
     public void Blink()
     {
-        for (var row = 0; row < colors.GetLength(0); ++row)
+        for (var row = 0; row < height; ++row)
         {
-            for (var column = 0; column < 2 * row + 1; ++column)
+            var starsInRow = 2 * row + 1;
+            for (var column = 0; column < starsInRow; ++column)
             {
                 colors[row, column] = GenerateRandomColor();
             }
@@ -56,5 +78,5 @@ public class ChristmasTree
     }
 
     private ConsoleColor GenerateRandomColor() =>
-        availableColors[random.Next() % availableColors.Length];
+        availableColors[random.Next(0, availableColors.Length)];
 }
